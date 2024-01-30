@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>413c_8143</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>as.acidanthera.$(PRODUCT_NAME:rfc1034identifier)</string>
+			<key>DisplayName</key>
+			<string>DW1550 Bluetooth 4.0 LE</string>
+			<key>FirmwareKey</key>
+			<string>BCM20702A1_001.002.014.1159.1186_v5282</string>
+			<key>IOClass</key>
+			<string>BrcmPatchRAM2</string>
+			<key>IOMatchCategory</key>
+			<string>BrcmPatchRAM2</string>
+			<key>IOProbeScore</key>
+			<integer>4000</integer>
+			<key>IOProviderClass</key>
+			<string>IOUSBHostDevice</string>
+			<key>idProduct</key>
+			<integer>33091</integer>
+			<key>idVendor</key>
+			<integer>16700</integer>
+		</dict>
+		<key>BrcmPatchRAMResidency</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>as.acidanthera.$(PRODUCT_NAME:rfc1034identifier)</string>
+			<key>IOClass</key>
+			<string>BrcmPatchRAMResidency</string>
+			<key>IOMatchCategory</key>
+			<string>BrcmPatchRAMResidency</string>
+			<key>IOProviderClass</key>
+			<string>disabled_IOResources</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
