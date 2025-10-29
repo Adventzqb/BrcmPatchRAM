@@ -149,6 +149,7 @@ static const uint8_t kSkipInternalControllerNVRAMCheckPatched13_3[] =
 
 static bool shouldPatchBoardId = false;
 static bool shouldPatchAddress = false;
+static bool shouldPatchNvramCheck = false;
 
 static constexpr size_t kBoardIdSize = sizeof("Mac-F60DEB81FF30ACF6");
 static constexpr size_t kBoardIdSizeLegacy = sizeof("Mac-F22586C8");
@@ -211,8 +212,10 @@ static void patched_cs_validate_page(vnode_t vp, memory_object_t pager, memory_o
         else if (strcmp(path + dirLength, "bluetoothd") == 0) {
             searchAndPatch(data, PAGE_SIZE, path, kVendorCheckOriginal, kVendorCheckPatched);
             searchAndPatch(data, PAGE_SIZE, path, kBadChipsetCheckOriginal, kBadChipsetCheckPatched);
-            searchAndPatch(data, PAGE_SIZE, path, kBadChipsetCheckOriginal13_3, kBadChipsetCheckPatched13_3);
-            searchAndPatchWithMask(data, PAGE_SIZE, path, kSkipInternalControllerNVRAMCheck13_3, sizeof(kSkipInternalControllerNVRAMCheck13_3), kSkipInternalControllerNVRAMCheckMask13_3, sizeof(kSkipInternalControllerNVRAMCheckMask13_3), kSkipInternalControllerNVRAMCheckPatched13_3, sizeof(kSkipInternalControllerNVRAMCheckPatched13_3), nullptr, 0);
+            if (getKernelVersion() >= KernelVersion::Ventura && getKernelVersion() < KernelVersion::Sequoia)
+                searchAndPatch(data, PAGE_SIZE, path, kBadChipsetCheckOriginal13_3, kBadChipsetCheckPatched13_3);
+            if (shouldPatchNvramCheck)
+                searchAndPatchWithMask(data, PAGE_SIZE, path, kSkipInternalControllerNVRAMCheck13_3, sizeof(kSkipInternalControllerNVRAMCheck13_3), kSkipInternalControllerNVRAMCheckMask13_3, sizeof(kSkipInternalControllerNVRAMCheckMask13_3), kSkipInternalControllerNVRAMCheckPatched13_3, sizeof(kSkipInternalControllerNVRAMCheckPatched13_3), nullptr, 0);
             if (shouldPatchBoardId)
                 searchAndPatch(data, PAGE_SIZE, path, boardIdsWithUSBBluetooth[0], kBoardIdSize, BaseDeviceInfo::get().boardIdentifier, kBoardIdSize);
             if (shouldPatchAddress)
@@ -227,8 +230,12 @@ static void patched_cs_validate_page(vnode_t vp, memory_object_t pager, memory_o
 static void pluginStart() {
     SYSLOG(MODULE_SHORT, "start");
     // There is no point in routing cs_validate_range, because this kext should only be running on Monterey+
-    if (getKernelVersion() >= KernelVersion::Monterey) {
-        lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
+    if (getKernelVersion() < KernelVersion::Monterey)
+        return;
+    lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
+        if (getKernelVersion() >= KernelVersion::Sonoma) {
+            shouldPatchBoardId = checkKernelArgument("-btlfxboardid");
+        } else {
             auto boardId = BaseDeviceInfo::get().boardIdentifier;
             auto boardIdSize = strlen(boardId) + 1;
             shouldPatchBoardId = boardIdSize == kBoardIdSize || boardIdSize == kBoardIdSizeLegacy;
@@ -238,14 +245,16 @@ static void pluginStart() {
                         shouldPatchBoardId = false;
                         break;
                     }
-            if ((getKernelVersion() == KernelVersion::Monterey && getKernelMinorVersion() >= 5) || getKernelVersion() > KernelVersion::Monterey)
-                // 12.4 Beta 3+, XNU 21.5
-                shouldPatchAddress = checkKernelArgument("-btlfxallowanyaddr");
-            KernelPatcher::RouteRequest csRoute = KernelPatcher::RouteRequest("_cs_validate_page", patched_cs_validate_page, orig_cs_validate);
-            if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
-                SYSLOG(MODULE_SHORT, "failed to route cs validation pages");
-        });
-    }
+        }
+        if ((getKernelVersion() == KernelVersion::Monterey && getKernelMinorVersion() >= 5) || getKernelVersion() > KernelVersion::Monterey)
+            // 12.4 Beta 3+, XNU 21.5
+            shouldPatchAddress = checkKernelArgument("-btlfxallowanyaddr");
+        if (getKernelVersion() <= KernelVersion::Sonoma)
+            shouldPatchNvramCheck = checkKernelArgument("-btlfxnvramcheck");
+        KernelPatcher::RouteRequest csRoute = KernelPatcher::RouteRequest("_cs_validate_page", patched_cs_validate_page, orig_cs_validate);
+        if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
+            SYSLOG(MODULE_SHORT, "failed to route cs validation pages");
+    });
 }
 
 // Boot args.
@@ -271,6 +280,6 @@ PluginConfiguration ADDPR(config) {
     bootargBeta,
     arrsize(bootargBeta),
     KernelVersion::Monterey,
-    KernelVersion::Sonoma,
+    KernelVersion::Tahoe,
     pluginStart
 };

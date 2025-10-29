@@ -1,7 +1,7 @@
 BrcmPatchRAM
 ============
 
-[![Build Status](https://github.com/acidanthera/BrcmPatchRAM/workflows/CI/badge.svg?branch=master)](https://github.com/acidanthera/BrcmPatchRAM/actions) [![Scan Status](https://scan.coverity.com/projects/22191/badge.svg?flat=1)](https://scan.coverity.com/projects/22191)
+[![Build Status](https://github.com/acidanthera/BrcmPatchRAM/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/acidanthera/BrcmPatchRAM/actions) [![Scan Status](https://scan.coverity.com/projects/22191/badge.svg?flat=1)](https://scan.coverity.com/projects/22191)
 
 ### Translate Language
 
@@ -173,6 +173,13 @@ If yours is not present, edit the Info.plist as needed.
 Required for macOS 12 or newer, as in macOS 12 Apple has changed parts of the Bluetooth stack from kernel-space to user-space as detailed in [here](https://github.com/acidanthera/bugtracker/issues/1669) and [here](https://github.com/acidanthera/BrcmPatchRAM/pull/12). Requires Lilu 1.5.4+  
   
 Do not use it with BrcmBluetoothInjector for macOS 12 or newer.
+
+You will need to set the following NVRAM variables through your bootloader for at least Intel Bluetooth to work:
+
+* `7C436110-AB2A-4BBB-A880-FE41995C9F82:bluetoothExternalDongleFailed` — `00`
+* `7C436110-AB2A-4BBB-A880-FE41995C9F82:bluetoothInternalControllerInfo` — `0000000000000000000000000000`
+
+It is recommended to do it through OpenCore NVRAM section. On macOS 14 and older it is possible to achieve the same with `-btlfxnvramcheck` boot argument, but it is much less efficient.
 
 ### Supported Devices
 
